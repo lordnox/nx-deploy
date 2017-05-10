@@ -1,0 +1,20 @@
+{
+  "name": "nx-deploy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "deployment.js",
+  "bin": {
+    "deploy": "./bin/deploy.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.9.0",
+    "debug": "^2.6.6",
+    "yamljs": "^0.2.10"
+  }
+}

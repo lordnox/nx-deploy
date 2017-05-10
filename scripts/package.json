@@ -1,0 +1,13 @@
+{
+  "name": "internal-deployment-scripts",
+  "version": "0.0.0",
+  "description": "",
+  "main": "",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pm2": "^2.4.6"
+  }
+}
