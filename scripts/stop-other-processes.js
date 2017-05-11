@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-const timestamp = process.argv[2]
+const positve = process.argv[2]
+const negative = process.argv[3]
 
 const pm2 = require('pm2')
 
@@ -40,8 +41,10 @@ const deleteApp = ({ pm_id }) => new Promise( (resolve, reject) => {
 
 pm2.connect( err ( () => {
   pm2.list( err ( list => {
-
-    each( list.filter( ({ name }) => name !== timestamp ), deleteApp )
+    each( list
+      .filter( ({ name }) => name.indexOf(positve) === 0 )
+      .filter( ({ name }) => name.indexOf(negative) !== 0 ), deleteApp)
+    // each( list.filter( ({ name }) => name !== timestamp ), deleteApp )
     .then( () => exit() )
     .catch( exit )
   }))

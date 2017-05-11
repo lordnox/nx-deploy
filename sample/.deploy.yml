@@ -1,3 +1,3 @@
 env :
-  appName : "mySample"
+  appName : "sample"
   host    : AWS_HOST
