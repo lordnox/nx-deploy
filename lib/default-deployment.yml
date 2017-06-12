@@ -1,0 +1,130 @@
+
+env :
+  nginxLogPath : ./log
+  nginxConfPath : /home/ec2-user/nginx
+  nginxSourceConfig : /etc/nginx/nginx.conf
+  scriptsPath : scripts
+  deploy : ./deployment/
+  pm2Path : /home/ec2-user/node/bin/pm2
+  nodejsHost : https://nodejs.org/dist/latest/
+  appName : myApp
+  nodeVersion : 7.10.0
+  versionPath : ./versions
+  sourcePath : ./sample
+  sourcePort : "3000"
+  portsConfig : config-ports.json
+
+stages :
+  INITIALIZE : ENSURE
+  ENSURE : INITIALIZED
+  INITIALIZED : APP_BEFORE_UPLOAD
+  APP_BEFORE_UPLOAD: APP_UPLOAD
+  APP_UPLOAD : BEFORE_START
+  BEFORE_START : START_APP
+  START_APP : AFTER_START
+  AFTER_START : BLUEGREEN
+  BLUEGREEN : BEFORE_STOP
+  BEFORE_STOP : STOP_APP
+  STOP_APP : AFTER_STOP
+  AFTER_STOP : APP_READY
+
+stageDescriptions :
+  INITIALIZE : Initialize the script and upload the deployment scripts
+  ENSURE : Ensure that all services are running
+  INITIALIZED : Run the last bits of code after all resources are available
+  APP_BEFORE_UPLOAD: Prepare everything for Upload
+  APP_UPLOAD : Upload the new files
+  BEFORE_START : Run scripts bevore the application starts
+  START_APP : Starting the application
+  AFTER_START : Run scripts after the applications starts
+  BLUEGREEN : Run switch from the current version to the new one
+  BEFORE_STOP : Run scripts before the old application shuts down
+  STOP_APP : Shut down the old application
+  AFTER_STOP : Run scripts before the old application shuts down
+
+INITIALIZE :
+  - rm -fr :deploy
+  - mkdir :deploy
+  - cmd : scp
+    src : :scriptsPath
+    dest : :deploy
+  - chmod +x :deploy/*.js || true
+  - mkdir -p :nginxLogPath
+  - mkdir -p :nginxConfPath
+
+ENSURE :
+  - name : node
+    cmd : ensure
+    ensure :
+    - cmd : ssh
+      ssh : node -v
+      is : v:nodeVersion
+      transform :
+        - trim
+    commands :
+      - wget :nodejsHostnode-v:nodeVersion-linux-x64.tar.gz
+      - tar xzf node-v:nodeVersion-linux-x64.tar.gz
+      - rm -f node-v:nodeVersion-linux-x64.tar.gz
+      - rm -fr node
+      - mv node-v:nodeVersion-linux-x64 node
+  - name : pm2
+    cmd : ensure
+    ensure :
+      - cmd : ssh
+        ssh : :deploy/exists :pm2Path
+        is : OK
+        transform :
+          - trim
+    commands :
+      - npm i -g pm2
+  - name : pm2:running
+    cmd : ensure
+    ensure :
+      - cmd : ssh
+        ssh : pm2 ping
+        is : "{ msg: 'pong' }"
+        transform :
+          - trim
+  - cd :deploy && npm i
+
+INITIALIZED :
+  - node ./:deploy/finish-deployment.js
+
+APP_BEFORE_UPLOAD :
+  - mkdir -p :versionPath/:appName
+  - name : get timestamp
+    cmd : ssh
+    ssh : date +'%Y-%m-%d-%H%M%S'
+    save : timestamp
+    transform :
+      - trim
+  - name : find a free port
+    cmd : ssh
+    ssh : :deploy/get-port
+    save : PORT
+    transform :
+      - trim
+  - name : define path
+    cmd : ssh
+    ssh : echo ':versionPath/:appName/:timestamp'
+    save : target
+    transform :
+      - trim
+  - :deploy/set-port :portsConfig :appName :sourcePort :PORT
+
+APP_UPLOAD :
+  - name: upload application to version path
+    cmd: scp
+    src: :sourcePath
+    dest: :target
+
+START_APP :
+  - PORT=:PORT pm2 start :target --name :appName-:timestamp
+
+BLUEGREEN :
+  - :deploy/configure-nginx :portsConfig :nginxSourceConfig :nginxConfPath/nginx-:timestamp.conf
+  - sudo nginx -s stop && sudo nginx -c :nginxConfPath/nginx-:timestamp.conf
+
+STOP_APP :
+  - :deploystop-other-processes :appName- :appName-:timestamp
+
