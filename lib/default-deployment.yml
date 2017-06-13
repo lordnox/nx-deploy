@@ -49,6 +49,7 @@ INITIALIZE :
     src : :scriptsPath
     dest : :deploy
   - chmod +x :deploy/*.js || true
+  - chmod +x :deploy/*.sh || true
   - mkdir -p :nginxLogPath
   - mkdir -p :nginxConfPath
 
@@ -71,7 +72,7 @@ ENSURE :
     cmd : ensure
     ensure :
       - cmd : ssh
-        ssh : :deploy/exists :pm2Path
+        ssh : :deploy/exists.js :pm2Path
         is : OK
         transform :
           - trim
@@ -87,9 +88,6 @@ ENSURE :
           - trim
   - cd :deploy && npm i
 
-INITIALIZED :
-  - node ./:deploy/finish-deployment.js
-
 APP_BEFORE_UPLOAD :
   - mkdir -p :versionPath/:appName
   - name : get timestamp
@@ -100,7 +98,7 @@ APP_BEFORE_UPLOAD :
       - trim
   - name : find a free port
     cmd : ssh
-    ssh : :deploy/get-port
+    ssh : :deploy/get-port.js
     save : PORT
     transform :
       - trim
@@ -110,7 +108,7 @@ APP_BEFORE_UPLOAD :
     save : target
     transform :
       - trim
-  - :deploy/set-port :portsConfig :appName :sourcePort :PORT
+  - :deploy/set-port.js :portsConfig :appName :sourcePort :PORT
 
 APP_UPLOAD :
   - name: upload application to version path
@@ -122,9 +120,9 @@ START_APP :
   - PORT=:PORT pm2 start :target --name :appName-:timestamp
 
 BLUEGREEN :
-  - :deploy/configure-nginx :portsConfig :nginxSourceConfig :nginxConfPath/nginx-:timestamp.conf
+  - :deploy/configure-nginx.js :portsConfig :nginxSourceConfig :nginxConfPath/nginx-:timestamp.conf
   - sudo nginx -s stop && sudo nginx -c :nginxConfPath/nginx-:timestamp.conf
 
 STOP_APP :
-  - :deploystop-other-processes :appName- :appName-:timestamp
+  - :deploystop-other-processes.js :appName- :appName-:timestamp
 

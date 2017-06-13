@@ -2,7 +2,6 @@
 
 const program = require(`commander`)
 const Deployment = require('../lib/deployment')
-// const { ensure, cmd, each } = deployment
 
 program
   .option(`-c, --config <path>`, `set config path. defaults to ./deploy.conf`, `.deploy.yml`)
