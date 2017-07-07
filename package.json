@@ -7,6 +7,9 @@
     "deploy": "./bin/deploy.js"
   },
   "scripts": {
+    "preupload": "npm version patch",
+    "upload": "npm publish",
+    "postupload": "git push",
     "test": "echo \"Error: no test specified\" && exit 1",
     "sample": "DEBUG=* deploy deploy -c sample/.deploy.yml"
   },

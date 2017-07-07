@@ -1,5 +1,5 @@
 # nx-deploy
-Deployment tool for services of ssh
+Deployment tool for services over ssh
 
 ## Install PM2
 
